@@ -1,27 +1,33 @@
-# Stage 3
+# Stage 4
 
-In this stage we step it up and showcase how to integrate multiple ```cc_library``` targets from different packages.
+In this stage we step it up and showcase how to download and use [google/googletest: Googletest - Google Testing and Mocking Framework](https://github.com/google/googletest).
 
-Below, we see a similar configuration from Stage 2, except that this BUILD file is in a subdirectory called lib. In Bazel, subdirectories containing BUILD files are known as packages. The new property ```visibility``` will tell Bazel which package(s) can reference this target, in this case the ```//main``` package can use ```hello-time``` library. 
+Below, we see a similar configuration from Stage 3, except that this WORKSPACE contains `http_archive` for `googletest` and `test` directory is added.
+Also an overloaded `get_greet` function is added to `hello-greet` and `visilibity` is added to `main/BUILD` for test code to use `get_greet` function.
+
+Here is `WORKSPACE` file.
 
 ```
-cc_library(
-    name = "hello-time",
-    srcs = ["hello-time.cc"],
-    hdrs = ["hello-time.h"],
-    visibility = ["//main:__pkg__"],
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "gtest",
+    url = "https://github.com/google/googletest/archive/release-1.10.0.zip",
+    sha256 = "94c634d499558a76fa649edb13721dce6e98fb1e7018dfaeba3cd7a083945e91",
+    strip_prefix = "googletest-release-1.10.0",
 )
 ```
 
-To use our ```hello-time``` libary, an extra dependency is added in the form of //path/to/package:target_name, in this case, it's ```//lib:hello-time```
+And here is `test/BUILD` file.
 
 ```
-cc_binary(
-    name = "hello-world",
-    srcs = ["hello-world.cc"],
+cc_test(
+    name = "hello-test",
+    srcs = ["hello-test.cc"],
+    copts = ["-Iexternal/gtest/include"],
     deps = [
-        ":hello-greet",
-        "//lib:hello-time",
+        "@gtest//:gtest_main",
+        "//main:hello-greet",
     ],
 )
 ```
@@ -34,3 +40,9 @@ bazel build //main:hello-world
 
 bazel build ///main:hello-world
 ```
+
+To run test you use
+```
+bazel test test:hello-test
+```
+See [External dependencies - Bazel 3.7.0](https://docs.bazel.build/versions/3.7.0/external.html) for details.
